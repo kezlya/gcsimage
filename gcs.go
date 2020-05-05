@@ -7,12 +7,12 @@ package gcsimage
 //		return "", err
 //	}
 //
-//	bucket, bucketErr := storageClient.Bucket(bucket)
+//	handle, bucketErr := storageClient.Bucket(handle)
 //	if bucketErr != nil {
 //		return "", bucketErr
 //	}
 //
-//	wc := bucket.Object(fileName).NewWriter(ctx)
+//	wc := handle.Object(fileName).NewWriter(ctx)
 //	wc.ContentType = contentType
 //
 //	if _, writeErr := wc.Write(data); writeErr != nil {
