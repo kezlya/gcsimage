@@ -13,6 +13,20 @@ import (
 	"io/ioutil"
 )
 
+type Anchor int
+
+const (
+	Center Anchor = iota
+	TopLeft
+	Top
+	TopRight
+	Left
+	Right
+	BottomLeft
+	Bottom
+	BottomRight
+)
+
 type Bucket struct {
 	handle *storage.BucketHandle
 }
@@ -26,7 +40,7 @@ func InitBucket(bucket string) (*Bucket, error) {
 	return &Bucket{handle: client.Bucket(bucket)}, nil
 }
 
-func (b *Bucket) Get(id string, width, height int) ([]byte, error) {
+func (b *Bucket) Get(id string, anchor Anchor, width, height int) ([]byte, error) {
 	ctx := context.Background()
 	key := fmt.Sprintf("%s-%d-%d", id, width, height)
 
@@ -45,7 +59,7 @@ func (b *Bucket) Get(id string, width, height int) ([]byte, error) {
 		return nil, errImg
 	}
 
-	modified := imaging.Resize(original, width, height, imaging.Lanczos)
+	modified := imaging.Fill(original, width, height,imaging.Anchor(anchor), imaging.Lanczos)
 	buf := new(bytes.Buffer)
 	errEnc := jpeg.Encode(buf, modified, nil)
 	if errEnc != nil {
