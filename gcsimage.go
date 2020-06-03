@@ -42,8 +42,11 @@ func InitBucket(bucket string) (*Bucket, error) {
 
 func (b *Bucket) Get(id string, anchor Anchor, width, height int) ([]byte, error) {
 	ctx := context.Background()
-	key := fmt.Sprintf("%s-%d-%d", id, width, height)
+	if width <=0 && height <=0{
+		return b.getOriginal(id)
+	}
 
+	key := fmt.Sprintf("%s-%d-%d", id, width, height)
 	reader, err := b.handle.Object(key).NewReader(ctx)
 	if err == nil {
 		return ioutil.ReadAll(reader)
@@ -73,6 +76,21 @@ func (b *Bucket) Get(id string, anchor Anchor, width, height int) ([]byte, error
 	}
 
 	return data, nil
+}
+
+func (b *Bucket) getOriginal(id string) ([]byte, error){
+	reader, err := b.handle.Object(id).NewReader(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	buf := new(bytes.Buffer)
+	_, errBytes := buf.ReadFrom(reader)
+	if errBytes != nil {
+		return nil, errBytes
+	}
+
+	return buf.Bytes(), nil
 }
 
 func (b *Bucket) Add(data []byte) (string, error) {
