@@ -42,7 +42,7 @@ func InitBucket(bucket string) (*Bucket, error) {
 
 func (b *Bucket) Get(id string, anchor Anchor, width, height int) ([]byte, error) {
 	ctx := context.Background()
-	if width <=0 && height <=0{
+	if width <= 0 && height <= 0 {
 		return b.getOriginal(id)
 	}
 
@@ -57,12 +57,12 @@ func (b *Bucket) Get(id string, anchor Anchor, width, height int) ([]byte, error
 		return nil, err
 	}
 
-	original, errImg := jpeg.Decode(reader)
+	original, errImg := imaging.Decode(reader, imaging.AutoOrientation(true))
 	if errImg != nil {
 		return nil, errImg
 	}
 
-	modified := imaging.Fill(original, width, height,imaging.Anchor(anchor), imaging.Lanczos)
+	modified := imaging.Fill(original, width, height, imaging.Anchor(anchor), imaging.Lanczos)
 	buf := new(bytes.Buffer)
 	errEnc := jpeg.Encode(buf, modified, nil)
 	if errEnc != nil {
@@ -78,7 +78,7 @@ func (b *Bucket) Get(id string, anchor Anchor, width, height int) ([]byte, error
 	return data, nil
 }
 
-func (b *Bucket) getOriginal(id string) ([]byte, error){
+func (b *Bucket) getOriginal(id string) ([]byte, error) {
 	reader, err := b.handle.Object(id).NewReader(context.Background())
 	if err != nil {
 		return nil, err
@@ -94,9 +94,6 @@ func (b *Bucket) getOriginal(id string) ([]byte, error){
 }
 
 func (b *Bucket) Add(data []byte) (string, error) {
-	sniffFormat()
-	fixOrientation()
-
 	id := uuid.New().String()
 	err := b.save(id, data)
 	if err != nil {
@@ -113,7 +110,6 @@ func (b *Bucket) save(key string, data []byte) error {
 
 	ctx := context.Background()
 	writer := b.handle.Object(key).NewWriter(ctx)
-	writer.ContentType = "image/jpeg"
 	_, errWrite := writer.Write(data)
 	if errWrite != nil {
 		return errWrite
@@ -125,14 +121,4 @@ func (b *Bucket) save(key string, data []byte) error {
 	}
 
 	return nil
-}
-
-func sniffFormat() {
-	//TODO implement
-	// https://golang.org/src/image/format.go
-}
-
-func fixOrientation() {
-	//TODO implement
-	//  imaging . readOrientation(r io.Reader) orientation
 }

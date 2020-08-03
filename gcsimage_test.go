@@ -17,10 +17,10 @@ func TestInitBucket(t *testing.T) {
 	bucket, err := InitBucket(os.Getenv("IMAGES_STORAGE_BUCKET"))
 
 	//assert
-	if err != nil{
+	if err != nil {
 		log.Fatalln(err)
 	}
-	if bucket == nil{
+	if bucket == nil {
 		log.Fatalln("fail connect to gcs bucket")
 	}
 }
@@ -36,7 +36,7 @@ func TestGet(t *testing.T) {
 func TestAdd(t *testing.T) {
 	//arrange
 	bucket, err := InitBucket(os.Getenv("IMAGES_STORAGE_BUCKET"))
-	if err != nil{
+	if err != nil {
 		return
 	}
 
