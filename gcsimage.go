@@ -70,7 +70,7 @@ func (b *Bucket) Get(id string, anchor Anchor, width, height int) ([]byte, error
 	}
 
 	data := buf.Bytes()
-	errSave := b.save(key, data)
+	errSave := b.Save(key, data)
 	if errSave != nil {
 		return nil, errSave
 	}
@@ -95,7 +95,7 @@ func (b *Bucket) getOriginal(id string) ([]byte, error) {
 
 func (b *Bucket) Add(data []byte) (string, error) {
 	id := uuid.New().String()
-	err := b.save(id, data)
+	err := b.Save(id, data)
 	if err != nil {
 		return "", err
 	}
@@ -103,7 +103,7 @@ func (b *Bucket) Add(data []byte) (string, error) {
 	return id, nil
 }
 
-func (b *Bucket) save(key string, data []byte) error {
+func (b *Bucket) Save(key string, data []byte) error {
 	if len(data) == 0 {
 		return errors.New("data is empty")
 	}
