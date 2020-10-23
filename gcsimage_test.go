@@ -14,7 +14,7 @@ func TestInitBucket(t *testing.T) {
 	//arrange
 
 	//act
-	bucket, err := InitBucket(os.Getenv("IMAGES_STORAGE_BUCKET"))
+	bucket, err := InitBucket(os.Getenv("IMAGES_STORAGE_BUCKET"), 85)
 
 	//assert
 	if err != nil {
@@ -35,7 +35,7 @@ func TestGet(t *testing.T) {
 
 func TestAdd(t *testing.T) {
 	//arrange
-	bucket, err := InitBucket(os.Getenv("IMAGES_STORAGE_BUCKET"))
+	bucket, err := InitBucket(os.Getenv("IMAGES_STORAGE_BUCKET"), 85)
 	if err != nil {
 		return
 	}

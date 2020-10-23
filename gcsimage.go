@@ -28,16 +28,20 @@ const (
 )
 
 type Bucket struct {
-	handle *storage.BucketHandle
+	handle  *storage.BucketHandle
+	quality int
 }
 
-func InitBucket(bucket string) (*Bucket, error) {
+func InitBucket(bucket string, quality int) (*Bucket, error) {
 	client, err := storage.NewClient(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	return &Bucket{handle: client.Bucket(bucket)}, nil
+	return &Bucket{
+		handle:  client.Bucket(bucket),
+		quality: quality,
+	}, nil
 }
 
 func (b *Bucket) Get(id string, anchor Anchor, width, height int) ([]byte, error) {
@@ -64,7 +68,7 @@ func (b *Bucket) Get(id string, anchor Anchor, width, height int) ([]byte, error
 
 	modified := imaging.Fill(original, width, height, imaging.Anchor(anchor), imaging.Lanczos)
 	buf := new(bytes.Buffer)
-	errEnc := jpeg.Encode(buf, modified, nil)
+	errEnc := jpeg.Encode(buf, modified, &jpeg.Options{Quality: b.quality})
 	if errEnc != nil {
 		return nil, errEnc
 	}
