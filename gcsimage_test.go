@@ -1,6 +1,7 @@
 package gcsimage
 
 import (
+	"context"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -8,13 +9,13 @@ import (
 	"testing"
 )
 
-var bucket Bucket
+var background = context.Background()
 
 func TestInitBucket(t *testing.T) {
 	//arrange
 
 	//act
-	bucket, err := InitBucket(os.Getenv("IMAGES_STORAGE_BUCKET"), 85)
+	bucket, err := InitBucket(background, os.Getenv("IMAGES_STORAGE_BUCKET"), 85)
 
 	//assert
 	if err != nil {
@@ -27,27 +28,39 @@ func TestInitBucket(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	//arrange
+	bucket, _ := InitBucket(background, os.Getenv("IMAGES_STORAGE_BUCKET"), 85)
 
 	//act
+	good, ok := bucket.Get(background, "cat", TopRight, 10, 10)
+	bad, notOk := bucket.Get(background, "", TopRight, 10, 10)
 
 	//assert
+	if good == nil && ok != nil {
+		t.Errorf("fail to get image")
+	}
+
+	if bad != nil && notOk == nil {
+		t.Errorf("Should error on bad id")
+	}
 }
 
 func TestAdd(t *testing.T) {
 	//arrange
-	bucket, err := InitBucket(os.Getenv("IMAGES_STORAGE_BUCKET"), 85)
-	if err != nil {
-		return
-	}
+	bucket, _ := InitBucket(background, os.Getenv("IMAGES_STORAGE_BUCKET"), 85)
 
 	cat := dataFromUrl("https://placekitten.com/500/500")
 	empty := make([]byte, 0)
 
 	//act
-	good, _ := bucket.Add(cat)
-	bad, _ := bucket.Add(empty)
+	err := bucket.Save(background, "cat", cat)
+	good, _ := bucket.Add(background, cat)
+	bad, _ := bucket.Add(background, empty)
 
 	//assert
+	if err != nil {
+		t.Errorf("fail to save image")
+	}
+
 	if good == "" {
 		t.Errorf("fail to add image")
 	}

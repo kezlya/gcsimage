@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"cloud.google.com/go/storage"
 	"errors"
+	"golang.org/x/net/context"
 
-	"context"
+	c "context"
 	"fmt"
 	"github.com/disintegration/imaging"
 	"github.com/google/uuid"
@@ -32,8 +33,8 @@ type Bucket struct {
 	quality int
 }
 
-func InitBucket(bucket string, quality int) (*Bucket, error) {
-	client, err := storage.NewClient(context.Background())
+func InitBucket(ctx c.Context, bucket string, quality int) (*Bucket, error) {
+	client, err := storage.NewClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -44,10 +45,9 @@ func InitBucket(bucket string, quality int) (*Bucket, error) {
 	}, nil
 }
 
-func (b *Bucket) Get(id string, anchor Anchor, width, height int) ([]byte, error) {
-	ctx := context.Background()
+func (b *Bucket) Get(ctx c.Context, id string, anchor Anchor, width, height int) ([]byte, error) {
 	if width <= 0 && height <= 0 {
-		return b.getOriginal(id)
+		return b.getOriginal(ctx, id)
 	}
 
 	key := fmt.Sprintf("%s-%d-%d", id, width, height)
@@ -74,7 +74,7 @@ func (b *Bucket) Get(id string, anchor Anchor, width, height int) ([]byte, error
 	}
 
 	data := buf.Bytes()
-	errSave := b.Save(key, data)
+	errSave := b.Save(ctx, key, data)
 	if errSave != nil {
 		return nil, errSave
 	}
@@ -82,7 +82,7 @@ func (b *Bucket) Get(id string, anchor Anchor, width, height int) ([]byte, error
 	return data, nil
 }
 
-func (b *Bucket) getOriginal(id string) ([]byte, error) {
+func (b *Bucket) getOriginal(ctx c.Context, id string) ([]byte, error) {
 	reader, err := b.handle.Object(id).NewReader(context.Background())
 	if err != nil {
 		return nil, err
@@ -97,9 +97,9 @@ func (b *Bucket) getOriginal(id string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (b *Bucket) Add(data []byte) (string, error) {
+func (b *Bucket) Add(ctx c.Context, data []byte) (string, error) {
 	id := uuid.New().String()
-	err := b.Save(id, data)
+	err := b.Save(ctx, id, data)
 	if err != nil {
 		return "", err
 	}
@@ -107,12 +107,11 @@ func (b *Bucket) Add(data []byte) (string, error) {
 	return id, nil
 }
 
-func (b *Bucket) Save(key string, data []byte) error {
+func (b *Bucket) Save(ctx c.Context, key string, data []byte) error {
 	if len(data) == 0 {
 		return errors.New("data is empty")
 	}
 
-	ctx := context.Background()
 	writer := b.handle.Object(key).NewWriter(ctx)
 	_, errWrite := writer.Write(data)
 	if errWrite != nil {
