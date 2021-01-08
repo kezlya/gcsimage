@@ -31,12 +31,16 @@ func TestGet(t *testing.T) {
 	bucket, _ := InitBucket(background, os.Getenv("IMAGES_STORAGE_BUCKET"), 85)
 
 	//act
-	good, ok := bucket.Get(background, "cat", TopRight, 10, 10)
-	bad, notOk := bucket.Get(background, "", TopRight, 10, 10)
+	goodJPG, ok := bucket.Get(background, "cat", JPG, TopRight, 10, 10)
+	goodPNG, ok := bucket.Get(background, "cat", PNG, TopRight, 10, 10)
+	bad, notOk := bucket.Get(background, "", JPG, TopRight, 10, 10)
 
 	//assert
-	if good == nil && ok != nil {
-		t.Errorf("fail to get image")
+	if goodJPG == nil && ok != nil {
+		t.Errorf("fail to get jpg image")
+	}
+	if goodPNG == nil && ok != nil {
+		t.Errorf("fail to get png image")
 	}
 
 	if bad != nil && notOk == nil {

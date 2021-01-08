@@ -3,14 +3,13 @@ package gcsimage
 import (
 	"bytes"
 	"cloud.google.com/go/storage"
-	"errors"
-	"golang.org/x/net/context"
-
 	c "context"
+	"errors"
 	"fmt"
 	"github.com/disintegration/imaging"
 	"github.com/google/uuid"
 	"image/jpeg"
+	"image/png"
 	"io/ioutil"
 )
 
@@ -28,12 +27,19 @@ const (
 	BottomRight
 )
 
+type Ext string
+
+const (
+	JPG Ext = "jpg"
+	PNG     = "png"
+)
+
 type Bucket struct {
 	handle  *storage.BucketHandle
 	quality int
 }
 
-func InitBucket(ctx c.Context, bucket string, quality int) (*Bucket, error) {
+func InitBucket(ctx c.Context, bucket string, jpegQuality int) (*Bucket, error) {
 	client, err := storage.NewClient(ctx)
 	if err != nil {
 		return nil, err
@@ -41,16 +47,16 @@ func InitBucket(ctx c.Context, bucket string, quality int) (*Bucket, error) {
 
 	return &Bucket{
 		handle:  client.Bucket(bucket),
-		quality: quality,
+		quality: jpegQuality,
 	}, nil
 }
 
-func (b *Bucket) Get(ctx c.Context, id string, anchor Anchor, width, height int) ([]byte, error) {
+func (b *Bucket) Get(ctx c.Context, id string, ext Ext, anchor Anchor, width, height int) ([]byte, error) {
 	if width <= 0 && height <= 0 {
 		return b.getOriginal(ctx, id)
 	}
 
-	key := fmt.Sprintf("%s-%d-%d", id, width, height)
+	key := fmt.Sprintf("%s-%d-%d-%s", id, width, height, ext)
 	reader, err := b.handle.Object(key).NewReader(ctx)
 	if err == nil {
 		return ioutil.ReadAll(reader)
@@ -68,9 +74,15 @@ func (b *Bucket) Get(ctx c.Context, id string, anchor Anchor, width, height int)
 
 	modified := imaging.Fill(original, width, height, imaging.Anchor(anchor), imaging.Lanczos)
 	buf := new(bytes.Buffer)
-	errEnc := jpeg.Encode(buf, modified, &jpeg.Options{Quality: b.quality})
-	if errEnc != nil {
-		return nil, errEnc
+
+	switch ext {
+	case PNG:
+		err = png.Encode(buf, modified)
+	case JPG:
+		err = jpeg.Encode(buf, modified, &jpeg.Options{Quality: b.quality})
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	data := buf.Bytes()
@@ -83,7 +95,7 @@ func (b *Bucket) Get(ctx c.Context, id string, anchor Anchor, width, height int)
 }
 
 func (b *Bucket) getOriginal(ctx c.Context, id string) ([]byte, error) {
-	reader, err := b.handle.Object(id).NewReader(context.Background())
+	reader, err := b.handle.Object(id).NewReader(ctx)
 	if err != nil {
 		return nil, err
 	}
