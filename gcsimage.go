@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"github.com/disintegration/imaging"
 	"github.com/google/uuid"
-	"image/jpeg"
-	"image/png"
 	"io/ioutil"
 )
 
@@ -32,23 +30,37 @@ type Ext string
 const (
 	JPG Ext = "jpg"
 	PNG     = "png"
+	GIF     = "gif"
 )
 
 type Bucket struct {
-	handle  *storage.BucketHandle
-	quality int
+	handle *storage.BucketHandle
 }
 
-func InitBucket(ctx c.Context, bucket string, jpegQuality int) (*Bucket, error) {
+func InitBucket(ctx c.Context, bucket string) (*Bucket, error) {
 	client, err := storage.NewClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Bucket{
-		handle:  client.Bucket(bucket),
-		quality: jpegQuality,
+		handle: client.Bucket(bucket),
 	}, nil
+}
+
+func (b *Bucket) getOriginal(ctx c.Context, id string) ([]byte, error) {
+	reader, err := b.handle.Object(id).NewReader(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := new(bytes.Buffer)
+	_, errBytes := buf.ReadFrom(reader)
+	if errBytes != nil {
+		return nil, errBytes
+	}
+
+	return buf.Bytes(), nil
 }
 
 func (b *Bucket) Get(ctx c.Context, id string, ext Ext, anchor Anchor, width, height int) ([]byte, error) {
@@ -77,9 +89,13 @@ func (b *Bucket) Get(ctx c.Context, id string, ext Ext, anchor Anchor, width, he
 
 	switch ext {
 	case PNG:
-		err = png.Encode(buf, modified)
+		err = imaging.Encode(buf, modified, imaging.PNG)
 	case JPG:
-		err = jpeg.Encode(buf, modified, &jpeg.Options{Quality: b.quality})
+		err = imaging.Encode(buf, modified, imaging.JPEG)
+	case GIF:
+		err = imaging.Encode(buf, modified, imaging.GIF)
+	default:
+		err = errors.New(fmt.Sprintf("%s is not supported. Only png, jpeg, gif", ext))
 	}
 	if err != nil {
 		return nil, err
@@ -92,21 +108,6 @@ func (b *Bucket) Get(ctx c.Context, id string, ext Ext, anchor Anchor, width, he
 	}
 
 	return data, nil
-}
-
-func (b *Bucket) getOriginal(ctx c.Context, id string) ([]byte, error) {
-	reader, err := b.handle.Object(id).NewReader(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	buf := new(bytes.Buffer)
-	_, errBytes := buf.ReadFrom(reader)
-	if errBytes != nil {
-		return nil, errBytes
-	}
-
-	return buf.Bytes(), nil
 }
 
 func (b *Bucket) Add(ctx c.Context, data []byte) (string, error) {

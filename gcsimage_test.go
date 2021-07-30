@@ -1,7 +1,10 @@
 package gcsimage
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"github.com/disintegration/imaging"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,7 +18,7 @@ func TestInitBucket(t *testing.T) {
 	//arrange
 
 	//act
-	bucket, err := InitBucket(background, os.Getenv("IMAGES_STORAGE_BUCKET"), 85)
+	bucket, err := InitBucket(background, os.Getenv("IMAGES_STORAGE_BUCKET"))
 
 	//assert
 	if err != nil {
@@ -28,7 +31,7 @@ func TestInitBucket(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	//arrange
-	bucket, _ := InitBucket(background, os.Getenv("IMAGES_STORAGE_BUCKET"), 85)
+	bucket, _ := InitBucket(background, os.Getenv("IMAGES_STORAGE_BUCKET"))
 
 	//act
 	goodJPG, ok := bucket.Get(background, "cat", JPG, TopRight, 10, 10)
@@ -48,9 +51,38 @@ func TestGet(t *testing.T) {
 	}
 }
 
+func TestGetTransperent(t *testing.T) {
+	bucket, err := InitBucket(background, os.Getenv("IMAGES_STORAGE_BUCKET"))
+	if err != nil {
+		t.Fail()
+	}
+
+	original, err := imaging.Open("original.png")
+	if err != nil {
+		t.Fail()
+	}
+
+	modified := imaging.Fill(original, 100, 100, imaging.Anchor(TopRight), imaging.Lanczos)
+	_ = imaging.Save(modified, "resized.png")
+
+	buf := new(bytes.Buffer)
+	err = imaging.Encode(buf, modified, imaging.PNG)
+	if err != nil {
+		t.Fail()
+	}
+
+	id, err := bucket.Add(background, buf.Bytes())
+	if err != nil {
+		t.Fail()
+	}
+
+	fmt.Println(id)
+
+}
+
 func TestAdd(t *testing.T) {
 	//arrange
-	bucket, _ := InitBucket(background, os.Getenv("IMAGES_STORAGE_BUCKET"), 85)
+	bucket, _ := InitBucket(background, os.Getenv("IMAGES_STORAGE_BUCKET"))
 
 	cat := dataFromUrl("https://placekitten.com/500/500")
 	empty := make([]byte, 0)
